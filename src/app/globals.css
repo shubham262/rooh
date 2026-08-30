@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
+/*
+ * The app commits to a single light theme, because antd's ConfigProvider in
+ * layouts/AntdProvider.jsx is configured light. A prefers-color-scheme block
+ * here would darken the page background while leaving every antd surface
+ * white, which reads as broken rather than as dark mode.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+	--background: #f7f8fa;
+	--foreground: #171717;
+	--rooh-primary: #2764ff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--font-sans: var(--font-manrope);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+	background: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Evidence snippets are quoted source text — set them apart from our own copy. */
+.evidence-snippet {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 12px;
+	line-height: 1.6;
 }

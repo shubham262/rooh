@@ -9,13 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^2.1.2",
+    "@langchain/aws": "^1.4.4",
+    "@langchain/core": "^1.2.9",
+    "@mozilla/readability": "^0.6.0",
     "antd": "^6.6.2",
     "axios": "^1.20.0",
+    "jsdom": "^29.1.1",
     "moment": "^2.30.1",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-icons": "^5.7.0"
+    "react-icons": "^5.7.0",
+    "server-only": "^0.0.1",
+    "turndown": "^7.2.4",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
