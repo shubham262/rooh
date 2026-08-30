@@ -6,8 +6,20 @@ a human.
 
 Built as a proof of concept for the rooh Founding Product Engineer take-home.
 
-> **Documents:** [Architecture & diagrams](docs/architecture.md) ·
-> [Technical rationale](docs/technical-rationale.md)
+## 📽 Watch the demo
+
+**[Video walkthrough (Loom)](https://www.loom.com/share/6ecc7dd686044c0aadf95f2ddf59d089)**
+— the full workflow end to end: URL in, evidence-checked record out, human review.
+
+## Deliverables
+
+| What | Where |
+|---|---|
+| **Video walkthrough** | [loom.com/share/6ecc7dd6…](https://www.loom.com/share/6ecc7dd686044c0aadf95f2ddf59d089) |
+| **Architecture diagram** | [`docs/architecture.md`](docs/architecture.md) — system diagram, trust boundary, request flow, Postgres schema, scaling path |
+| **Technical rationale** | [`docs/technical-rationale.md`](docs/technical-rationale.md) — decisions, trade-offs, build vs. buy, what I'd build first at rooh |
+| **Working POC** | this repo — [setup](#setup) below, runs locally with one API key |
+| **Source code** | [`src/`](src/) — see [project structure](#project-structure) |
 
 ---
 
@@ -93,6 +105,9 @@ fall through.
 ---
 
 ## Demo
+
+> Prefer to watch? **[Video walkthrough on Loom](https://www.loom.com/share/6ecc7dd686044c0aadf95f2ddf59d089)**
+> covers everything below. The steps here are for running it yourself.
 
 **1 — Analyze a page.** Paste a public experience URL and press Analyze. Fetch
 plus one model call takes 5–15 seconds.
