@@ -21,6 +21,3 @@ export const CATEGORIES = Object.freeze([
 /** Rendered into the system prompt so the allowed values are stated once. */
 export const CATEGORY_PROMPT_LIST = CATEGORIES.join(", ");
 
-export function isValidCategory(value) {
-	return CATEGORIES.includes(value);
-}

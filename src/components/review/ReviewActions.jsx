@@ -5,7 +5,7 @@ import { Alert, Button, Card, Input, Space, Typography, message } from "antd";
 import { LuCheck, LuX } from "react-icons/lu";
 import { STATUS } from "@/constants";
 import StatusTag from "@/components/common/StatusTag";
-import { reviewExperience } from "@/services/experienceService";
+import { useExperienceStore } from "@/stores/experienceStore";
 
 /**
  * The publishing decision.
@@ -15,18 +15,19 @@ import { reviewExperience } from "@/services/experienceService";
  * field feeds the audit trail, so a later question about why something was
  * approved has an answer.
  */
-export default function ReviewActions({ experience, onReviewed }) {
+export default function ReviewActions({ experience }) {
 	const [notes, setNotes] = useState("");
 	const [pending, setPending] = useState(null);
+	const recordReview = useExperienceStore((s) => s.recordReview);
 
 	const decided = experience.status !== STATUS.PENDING;
 
-	async function submit(action) {
+	function submit(action) {
 		setPending(action);
 		try {
-			const updated = await reviewExperience(experience.id, action, notes || undefined);
+			recordReview(experience.id, action, notes || undefined);
 			message.success(action === "approve" ? "Experience approved" : "Experience rejected");
-			onReviewed?.(updated);
+			setNotes("");
 		} catch (error) {
 			message.error(error.message);
 		} finally {

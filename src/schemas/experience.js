@@ -106,6 +106,10 @@ export const ExperienceSchema = LlmExtractionSchema.omit({
 		normalizedUrl: z.string(),
 		retrievedAt: z.string(),
 		type: z.enum(Object.values(SOURCE_TYPE)),
+		// Hash of the extracted content. Unused in V1, but it is what makes
+		// scheduled revalidation cheap later: re-fetch, compare, and only spend
+		// a model call when the page actually changed.
+		contentHash: z.string(),
 	}),
 
 	/** Evidence is carried through to the review UI, with verification applied. */
@@ -122,37 +126,22 @@ export const ExperienceSchema = LlmExtractionSchema.omit({
 	updatedAt: z.string(),
 });
 
-/** Fields a human reviewer is allowed to correct before approving. */
-export const ExperienceEditSchema = z
-	.object({
-		title: z.string().trim().min(1),
-		description: z.string().trim().min(1),
-		category: z.enum(CATEGORIES),
-		tags: z.array(z.string().trim().min(1)).max(12),
-		provider: z.object({ name: nullableString, website: nullableString }),
-		location: z.object({
-			name: nullableString,
-			address: nullableString,
-			city: nullableString,
-			country: nullableString,
-		}),
-		schedule: z.object({
-			start: nullableString,
-			end: nullableString,
-			timezone: nullableString,
-		}),
-		pricing: z.object({
-			amount: z.number().nonnegative().nullable(),
-			currency: nullableString,
-		}),
-	})
-	.partial();
-
 export const AnalyzeRequestSchema = z.object({
 	url: z.string().trim().min(1),
+	/**
+	 * The caller's existing records, for duplicate detection. Capped so a large
+	 * or hostile client can't send an unbounded payload; a reviewer working a
+	 * queue this long would want server-side storage anyway.
+	 */
+	known: z
+		.array(
+			z.object({
+				id: z.string(),
+				normalizedUrl: z.string(),
+				fingerprint: z.string(),
+			})
+		)
+		.max(500)
+		.default([]),
 });
 
-export const ReviewRequestSchema = z.object({
-	action: z.enum(["approve", "reject"]),
-	notes: z.string().trim().max(2000).optional(),
-});

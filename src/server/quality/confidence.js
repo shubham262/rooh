@@ -71,10 +71,3 @@ export function scoreConfidence({ completeness, evidenceCoverage, validation, so
 	return { confidence: Math.max(0, Math.min(100, confidence)), breakdown };
 }
 
-/** Labels + weights for the UI, so the score stays explainable at a glance. */
-export const CONFIDENCE_WEIGHTS = Object.freeze({
-	completeness: { label: "Completeness", weight: 30 },
-	evidenceCoverage: { label: "Evidence coverage", weight: 30 },
-	validation: { label: "Validation", weight: 20 },
-	sourceQuality: { label: "Source quality", weight: 20 },
-});

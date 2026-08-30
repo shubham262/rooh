@@ -51,11 +51,6 @@ export class MalformedAiOutputError extends AppError {
 	}
 }
 
-export class NotFoundError extends AppError {
-	constructor(detail = "That experience no longer exists.", cause) {
-		super(detail, { status: 404, code: "not_found", cause });
-	}
-}
 
 /**
  * Convert any thrown value into a JSON response body + status.

@@ -19,7 +19,7 @@ import DatePicker from "@/components/common/MomentDatePicker";
 import { CATEGORIES } from "@/helpers/taxonomy";
 import { formatPrice, formatLocation, orDash, NOT_STATED } from "@/helpers/formatHelpers";
 import { formatDateTime, toIso } from "@/helpers/dateHelpers";
-import { updateExperience } from "@/services/experienceService";
+import { useExperienceStore } from "@/stores/experienceStore";
 
 /**
  * The extracted record, readable by default and editable on demand.
@@ -29,10 +29,11 @@ import { updateExperience } from "@/services/experienceService";
  * than a proposal to be checked. Empty fields show an em-dash rather than a
  * blank, so "the page didn't say" reads as a deliberate answer.
  */
-export default function FieldEditor({ experience, onSaved }) {
+export default function FieldEditor({ experience }) {
 	const [editing, setEditing] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [form] = Form.useForm();
+	const updateExperience = useExperienceStore((s) => s.updateExperience);
 
 	const startEditing = () => {
 		form.setFieldsValue({
@@ -63,7 +64,7 @@ export default function FieldEditor({ experience, onSaved }) {
 
 		setSaving(true);
 		try {
-			const updated = await updateExperience(experience.id, {
+			updateExperience(experience.id, {
 				title: values.title,
 				description: values.description,
 				category: values.category,
@@ -87,7 +88,6 @@ export default function FieldEditor({ experience, onSaved }) {
 
 			message.success("Changes saved");
 			setEditing(false);
-			onSaved?.(updated);
 		} catch (error) {
 			message.error(error.message);
 		} finally {

@@ -7,6 +7,7 @@ import UrlForm from "@/components/ingest/UrlForm";
 import AnalyzingState from "@/components/ingest/AnalyzingState";
 import ErrorState from "@/components/common/ErrorState";
 import { analyzeUrl } from "@/services/experienceService";
+import { useExperienceStore } from "@/stores/experienceStore";
 
 export default function IngestView() {
 	const router = useRouter();
@@ -14,13 +15,20 @@ export default function IngestView() {
 	const [error, setError] = useState(null);
 	const [pendingUrl, setPendingUrl] = useState("");
 
+	const addExperience = useExperienceStore((s) => s.addExperience);
+	const getDedupeIndex = useExperienceStore((s) => s.getDedupeIndex);
+
 	async function handleSubmit(url) {
 		setLoading(true);
 		setError(null);
 		setPendingUrl(url);
 
 		try {
-			const experience = await analyzeUrl(url);
+			// Send what we already hold so the server can spot a duplicate — it
+			// has no store of its own to check against.
+			const experience = await analyzeUrl(url, getDedupeIndex());
+			addExperience(experience);
+
 			// Straight to review — an analysed record has no value until a human
 			// has looked at it, so the review page is the natural next screen.
 			router.push(`/review/${experience.id}`);

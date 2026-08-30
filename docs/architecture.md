@@ -150,9 +150,11 @@ POST /api/analyze { url }
 
 ## Data model
 
-In this POC the three tables below are in-memory maps and arrays behind a
-repository module (`src/server/store/experienceStore.js`). The shape is the
-shape we would ship; swapping in Postgres means replacing that one file.
+In this POC these three tables live in the browser, in a zustand store persisted
+to localStorage (`src/stores/experienceStore.js`) — the server is stateless, so
+a serverless instance never has to remember anything between requests. The shape
+below is the shape we would ship; moving to Postgres means replacing that one
+module and giving the server back its persistence role.
 
 ```sql
 CREATE TABLE experiences (

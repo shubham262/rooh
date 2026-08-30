@@ -10,7 +10,8 @@
  *
  * A route rather than a test runner because the POC ships no test framework;
  * this keeps the logic verifiable without adding one, and runs against the real
- * module graph including path aliases.
+ * module graph including path aliases. It is development-only — a deployed app
+ * has no business exposing its test suite.
  */
 import { verifyEvidence, findUnsupportedFields, scoreEvidenceCoverage } from "@/server/quality/evidence";
 import { scoreCompleteness, findMissingFields } from "@/server/quality/completeness";
@@ -28,6 +29,10 @@ Tickets are €45 per person. Join us on 2026-09-12 at 6 PM.
 The studio is at Torstrasse 12, Berlin, Germany.`;
 
 export async function GET() {
+	if (process.env.NODE_ENV === "production") {
+		return new Response("Not found", { status: 404 });
+	}
+
 	const out = [];
 	const t = (name, actual, expected) => {
 		const pass = JSON.stringify(actual) === JSON.stringify(expected);

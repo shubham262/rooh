@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Col, Row, Skeleton, Space, Timeline, Card, Typography } from "antd";
 import { LuArrowLeft } from "react-icons/lu";
@@ -11,54 +10,34 @@ import EvidenceList from "@/components/review/EvidenceList";
 import FieldEditor from "@/components/review/FieldEditor";
 import ReviewActions from "@/components/review/ReviewActions";
 import DemoModeBanner from "@/components/common/DemoModeBanner";
-import { getExperience } from "@/services/experienceService";
+import { useExperienceStore } from "@/stores/experienceStore";
+import { useHydrated } from "@/stores/useHydrated";
 import { formatDateTime } from "@/helpers/dateHelpers";
 
 export default function ReviewView({ id }) {
-	const [state, setState] = useState({
-		loading: true,
-		experience: null,
-		reviews: [],
-		error: null,
-	});
+	const hydrated = useHydrated();
 
-	// After an edit or a review the audit trail has changed too, so we refetch
-	// rather than patching local state and letting the timeline drift. Bumping
-	// this key re-runs the effect; state is only ever set from the async
-	// callbacks, never synchronously in the effect body.
-	const [reloadKey, setReloadKey] = useState(0);
+	// Subscribing to the record itself means an edit or a review action
+	// re-renders this page immediately — no refetch, and the audit trail below
+	// can never drift out of step with the record above it.
+	const experience = useExperienceStore((s) => s.experiences[id] ?? null);
+	const reviews = useExperienceStore((s) => s.reviews)
+		.filter((r) => r.experienceId === id)
+		.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-	useEffect(() => {
-		let active = true;
+	// Hold the skeleton until localStorage has loaded, otherwise a valid record
+	// briefly looks missing.
+	if (!hydrated) return <Skeleton active paragraph={{ rows: 10 }} />;
 
-		getExperience(id)
-			.then((data) => {
-				if (active)
-					setState({
-						loading: false,
-						experience: data.experience,
-						reviews: data.reviews,
-						error: null,
-					});
-			})
-			.catch((err) => {
-				if (active) setState({ loading: false, experience: null, reviews: [], error: err });
-			});
-
-		return () => {
-			active = false;
-		};
-	}, [id, reloadKey]);
-
-	const handleChanged = () => setReloadKey((k) => k + 1);
-	const { loading, experience, reviews, error } = state;
-
-	if (loading) return <Skeleton active paragraph={{ rows: 10 }} />;
-
-	if (error) {
+	if (!experience) {
 		return (
 			<Space orientation="vertical" size={16} style={{ width: "100%" }}>
-				<Alert type="error" showIcon title="Couldn't load this experience" description={error.message} />
+				<Alert
+					type="error"
+					showIcon
+					title="We couldn't find that experience"
+					description="Records are stored in this browser, so a link won't open on another device or after clearing site data. Analyze the URL again to recreate it."
+				/>
 				<Link href="/queue">
 					<Button icon={<LuArrowLeft />}>Back to queue</Button>
 				</Link>
@@ -97,14 +76,14 @@ export default function ReviewView({ id }) {
 
 			<Row gutter={16}>
 				<Col xs={24} lg={13}>
-					<FieldEditor experience={experience} onSaved={handleChanged} />
+					<FieldEditor experience={experience} />
 				</Col>
 				<Col xs={24} lg={11}>
 					<EvidenceList evidence={experience.evidence} />
 				</Col>
 			</Row>
 
-			<ReviewActions experience={experience} onReviewed={handleChanged} />
+			<ReviewActions experience={experience} />
 
 			{reviews.length ? (
 				<Card title="Audit trail" size="small">

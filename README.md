@@ -76,8 +76,7 @@ npm run dev                    # http://localhost:3000
 ### Environment variables
 
 All are server-side only — none is prefixed `NEXT_PUBLIC_`, so no key can reach
-the browser. Every model, extraction and storage call happens in a route
-handler.
+the browser. Every model and extraction call happens in a route handler.
 
 | Variable | Required | Purpose |
 |---|---|---|
@@ -98,15 +97,19 @@ fall through.
 **1 — Analyze a page.** Paste a public experience URL and press Analyze. Fetch
 plus one model call takes 5–15 seconds.
 
-A known-good URL to start with — a real, JS-rendered Eventbrite listing:
+Known-good URLs are wired into the page as one-click examples:
 
 ```
-https://www.eventbrite.co.uk/e/an-evening-of-cacao-and-breathwork-tickets-1996642518521
+https://cranleigharts.org/event/sound-bath-september-2026/          clean extraction
+https://www.chelseaphysicgarden.co.uk/event/summer-sound-bath-3/    price + start + end
+https://luma.com/sdvrbram                                           correctly rejected
 ```
 
-This one also demonstrates why the extractor is a paid dependency: a plain
-`fetch` of that page returns a 301 and 75 bytes, while TinyFish returns ~4,300
-characters of rendered content.
+The third is a real, well-run fintech networking dinner. It extracts accurately
+and is still refused — being a good event is not evidence of personal growth.
+
+These are live third-party pages and will eventually go stale; if one shows the
+demo-fixture banner, it has expired.
 
 **2 — Read the review screen.** Worth looking at in this order:
 
@@ -147,12 +150,7 @@ It covers evidence verification (including a deliberately fabricated quote that
 must be rejected), the scoring maths, semantic validation, URL normalisation,
 fingerprinting, and the SSRF guard.
 
-To see what the model would actually be shown for a given page — useful because
-"the AI got it wrong" is usually "the extractor returned a cookie banner":
-
-```bash
-curl "localhost:3000/api/selftest/extract?url=https://example.com/event"
-```
+It is development-only; a deployed build returns 404.
 
 ## Design decisions
 
@@ -182,6 +180,15 @@ near-duplicate titles get common enough to matter.
 **Why discovery isn't implemented.** Same reason. It's represented in the
 architecture and deliberately left unbuilt.
 
+**Why the browser owns the records.** The analysis runs server-side because it
+needs API keys, but the resulting records are stored client-side. On serverless,
+each request may hit a different instance, so a server-side in-memory store
+loses records between "analyse this URL" and "open the review page". Keeping
+state in the browser makes the server genuinely stateless — which is what
+serverless is — and lets the deployed demo work without provisioning a database.
+Duplicate detection still works: the client sends its URL/fingerprint index with
+each request.
+
 **Why a single loading state.** The pipeline has six stages but four finish in
 under 50 ms, and relevance isn't a separate step at all — it comes back in the
 same model response as the fields. A six-step progress bar would have been
@@ -204,18 +211,17 @@ animation rather than information.
 ```
 src/
   app/                    routes only — thin, delegating to views/
-    api/analyze           POST — the whole pipeline
-    api/experiences       list · get · edit · review
+    api/analyze           POST — the whole pipeline (the only endpoint)
   views/                  page-level compositions
   components/             ingest/ · review/ · common/
   layouts/                AntdProvider · AppShell
-  services/               CLIENT — axios wrappers, one per endpoint
+  stores/                 CLIENT — zustand + localStorage, owns the review queue
+  services/               CLIENT — the single axios call
   server/                 SERVER-ONLY — enforced by `server-only` imports
     ai/                   Bedrock client + the single extraction call
     extraction/           tinyfish · readability · fixture, behind one interface
     quality/              evidence · completeness · confidence · issues
-    dedupe/               URL normalisation · fingerprint
-    store/                in-memory repository
+    dedupe/               URL normalisation · fingerprint · duplicate matching
     pipeline/             runAnalysis — the orchestration
   schemas/                Zod: what the model may assert vs. what we persist
   helpers/                taxonomy · dates (moment) · formatting · errors
@@ -244,9 +250,12 @@ component is a build error rather than a leaked key.
 
 ## Known limitations
 
-- **In-memory storage** — records don't survive a server restart. Deliberate;
-  the production DDL is in [docs/architecture.md](docs/architecture.md) and all
-  access goes through one repository module.
+- **Records live in the browser** — the review queue is per-browser
+  localStorage, so two reviewers don't share a queue and clearing site data
+  clears the records. This is deliberate: the server is stateless, which is what
+  serverless actually is, and it means a deployed demo works without
+  provisioning a database. Production replaces it with the Postgres schema in
+  [docs/architecture.md](docs/architecture.md); the store module is the seam.
 - **Exact-match dedupe only** — won't catch reworded titles for the same event.
 - **No authentication** — every visitor is an implicit reviewer.
 - **Single-page extraction** — reads the URL given, doesn't follow "book here"

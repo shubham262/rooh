@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Empty, Progress, Segmented, Space, Table, Tag, Typography, Statistic, Row, Col } from "antd";
 import { LuTriangleAlert } from "react-icons/lu";
 import StatusTag from "@/components/common/StatusTag";
 import { STATUS } from "@/constants";
-import { listExperiences } from "@/services/experienceService";
+import { useExperienceStore } from "@/stores/experienceStore";
+import { useHydrated } from "@/stores/useHydrated";
 import { scoreColor, hostnameOf } from "@/helpers/formatHelpers";
 import { formatRelative } from "@/helpers/dateHelpers";
 
@@ -20,28 +21,24 @@ const FILTERS = [
 export default function QueueView() {
 	const router = useRouter();
 	const [filter, setFilter] = useState("all");
+	const hydrated = useHydrated();
 
-	// The loaded filter is stored alongside the data, so `loading` is derived
-	// rather than a separate state we'd have to set synchronously in the effect.
-	// Switching filters shows the spinner immediately, on the same render.
-	const [data, setData] = useState({ experiences: [], stats: null, filter: null });
-	const loading = data.filter !== filter;
+	// Reading straight from the store means no fetch, no loading race, and the
+	// list updates the moment a record is approved or edited elsewhere.
+	const experiences = useExperienceStore((s) => s.experiences);
 
-	useEffect(() => {
-		let active = true;
-
-		listExperiences(filter === "all" ? undefined : filter)
-			.then((result) => {
-				if (active) setData({ ...result, filter });
-			})
-			.catch(() => {
-				if (active) setData({ experiences: [], stats: null, filter });
-			});
-
-		return () => {
-			active = false;
+	const { rows, stats } = useMemo(() => {
+		const all = Object.values(experiences).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+		return {
+			rows: filter === "all" ? all : all.filter((e) => e.status === filter),
+			stats: {
+				total: all.length,
+				pending: all.filter((e) => e.status === STATUS.PENDING).length,
+				approved: all.filter((e) => e.status === STATUS.APPROVED).length,
+				rejected: all.filter((e) => e.status === STATUS.REJECTED).length,
+			},
 		};
-	}, [filter]);
+	}, [experiences, filter]);
 
 	const columns = [
 		{
@@ -123,13 +120,13 @@ export default function QueueView() {
 				</Typography.Text>
 			</div>
 
-			{data.stats ? (
+			{hydrated ? (
 				<Row gutter={16}>
 					{[
-						{ title: "Total", value: data.stats.total },
-						{ title: "Pending review", value: data.stats.pending },
-						{ title: "Approved", value: data.stats.approved },
-						{ title: "Rejected", value: data.stats.rejected },
+						{ title: "Total", value: stats.total },
+						{ title: "Pending review", value: stats.pending },
+						{ title: "Approved", value: stats.approved },
+						{ title: "Rejected", value: stats.rejected },
 					].map((stat) => (
 						<Col span={6} key={stat.title}>
 							<Card size="small">
@@ -149,8 +146,8 @@ export default function QueueView() {
 			<Card size="small" styles={{ body: { padding: 0 } }}>
 				<Table
 					rowKey="id"
-					loading={loading}
-					dataSource={data.experiences}
+					loading={!hydrated}
+					dataSource={rows}
 					columns={columns}
 					pagination={{ pageSize: 10, hideOnSinglePage: true }}
 					onRow={(record) => ({

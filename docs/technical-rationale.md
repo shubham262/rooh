@@ -71,11 +71,18 @@ information, and a job store existing solely to power it is machinery serving
 nothing. The queue becomes genuinely necessary at V2, when discovery submits
 work in bulk.
 
-**In-memory storage.** A deliberate POC choice to keep the demo to `npm run dev`
-with nothing to provision. It costs persistence across restarts. The mitigation
-is that all access goes through one repository module and the production DDL is
-written (`docs/architecture.md`) — swapping in Postgres is replacing one file,
-not a refactor.
+**Client-side storage.** The pipeline runs on the server because it needs API
+keys; the records it produces are stored in the browser (zustand + localStorage).
+This started as a POC shortcut and became the right answer on deployment: a
+serverless function has no reliable memory between invocations, so a server-side
+in-memory store loses the record between "analyse this URL" and "open the review
+page" whenever the two requests land on different instances. Moving state to the
+client makes the server genuinely stateless and lets the demo run with no
+database to provision. The costs are real and stated: the queue is per-browser,
+two reviewers don't share work, and clearing site data clears the records.
+Duplicate detection survives because the client sends its URL/fingerprint index
+with each request. Production replaces this with the Postgres schema in
+`docs/architecture.md`.
 
 **Exact-match deduplication.** Catches the same event submitted from different
 URLs. It will *not* catch "Morning Breathwork" vs "Breathwork: Morning Session".
