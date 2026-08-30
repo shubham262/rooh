@@ -1,7 +1,4 @@
 import "server-only";
-import { JSDOM } from "jsdom";
-import { Readability } from "@mozilla/readability";
-import TurndownService from "turndown";
 import { SOURCE_TYPE } from "@/constants";
 import { UnreachableError } from "@/helpers/errors";
 import { normalizeMarkdown } from "./provider";
@@ -15,6 +12,15 @@ import { normalizeMarkdown } from "./provider";
  *
  * Note we never execute page scripts: JSDOM is constructed without
  * `runScripts`, so hostile markup can't run code in our process.
+ *
+ * jsdom, Readability and Turndown are imported lazily, inside extract(), rather
+ * than at module scope. jsdom is a large dependency with a history of CJS/ESM
+ * packaging breakage — it took the whole analyze route down on Vercel once,
+ * even though the primary extractor never touches it. A fallback's dependencies
+ * should not be able to break the path that doesn't use them. If the import
+ * fails, it throws inside extract() where the provider chain already catches
+ * failures and falls through, so the worst case is a degraded fallback rather
+ * than a dead route.
  */
 
 const FETCH_TIMEOUT_MS = 15000;
@@ -22,13 +28,21 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const USER_AGENT =
 	"Mozilla/5.0 (compatible; roohbot/0.1; +https://withrooh.com) AppleWebKit/537.36 Chrome/122 Safari/537.36";
 
-let turndown = null;
-function getTurndown() {
-	if (!turndown) {
-		turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+let deps = null;
+async function loadDeps() {
+	if (!deps) {
+		const [{ JSDOM }, { Readability }, { default: TurndownService }] = await Promise.all([
+			import("jsdom"),
+			import("@mozilla/readability"),
+			import("turndown"),
+		]);
+
+		const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
 		turndown.remove(["script", "style", "noscript", "iframe", "svg"]);
+
+		deps = { JSDOM, Readability, turndown };
 	}
-	return turndown;
+	return deps;
 }
 
 async function fetchHtml(url) {
@@ -83,6 +97,7 @@ export const readabilityProvider = {
 	},
 
 	async extract(url) {
+		const { JSDOM, Readability, turndown } = await loadDeps();
 		const { html, finalUrl } = await fetchHtml(url);
 
 		const dom = new JSDOM(html, { url: finalUrl });
@@ -97,7 +112,7 @@ export const readabilityProvider = {
 		// Readability returns null on pages it can't find an article in; fall
 		// back to the body so the caller can judge the content on length alone.
 		const contentHtml = article?.content || doc.body?.innerHTML || "";
-		const markdown = normalizeMarkdown(getTurndown().turndown(contentHtml));
+		const markdown = normalizeMarkdown(turndown.turndown(contentHtml));
 
 		return {
 			markdown,
