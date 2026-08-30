@@ -35,7 +35,8 @@ A missing field is a correct answer. A plausible guess is a serious error — a 
 Specifically:
 - "Every Saturday" is not a date. schedule.start stays null unless a specific date is given.
 - A city named only in a phrase like "serving the Berlin area" is not a venue location.
-- Do not convert currencies or normalise prices. Record the number and currency as stated.
+- Never convert between currencies. Record the amount exactly as stated — £20 stays 20, never re-expressed in another currency at some exchange rate.
+- Record "currency" as its ISO 4217 three-letter code: £ is GBP, € is EUR, $ is USD. This is naming the currency the page already stated, not converting it. If the page uses an ambiguous "$" and never says which dollar, put your best reading in currency and note the ambiguity in conflicts.
 - If the page gives a price range or several ticket tiers, record the lowest headline price and note the range in conflicts.
 
 ## Dates without a year
@@ -54,6 +55,8 @@ For every non-null value of these fields — pricing.amount, schedule.start, loc
 - snippet: a short quote COPIED CHARACTER-FOR-CHARACTER from the page content that supports it
 
 The snippet must appear verbatim in the content you were given. Do not paraphrase, tidy, reflow, or translate it. Copy it exactly, including its punctuation and currency symbols. Keep it under about 200 characters.
+
+Quote the surrounding phrase, not the bare value. "Tickets are £20.00 per person" is good evidence; "£20.00" on its own is weak — a reviewer reading it cannot tell what the number refers to. Include enough of the sentence to make the claim unambiguous, while still copying it exactly.
 
 This is checked automatically against the source text. A snippet that does not appear in the content is treated as a fabrication and the value is flagged for the reviewer.
 

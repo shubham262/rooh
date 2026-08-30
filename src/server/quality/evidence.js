@@ -54,8 +54,16 @@ export function verifyEvidence(evidence, sourceContent) {
 
 	return (evidence ?? []).map((item) => {
 		const needle = normalizeForMatch(item.snippet ?? "");
-		// Very short snippets match by luck rather than by evidence.
-		const verified = needle.length >= 8 && haystack.includes(needle);
+
+		// The minimum only rejects empty or single-character junk. It used to be
+		// higher, to stop short snippets matching by luck — but that produced
+		// false positives on legitimately short evidence: a price quoted as
+		// "£20.00" is six characters and genuinely unambiguous, yet was being
+		// reported as unverifiable. Sending a reviewer to chase a value that is
+		// plainly on the page costs more trust than the coincidence risk it
+		// avoided. Snippet quality is enforced in the prompt instead, which asks
+		// for a full phrase rather than a bare value.
+		const verified = needle.length >= 4 && haystack.includes(needle);
 		return { ...item, verified };
 	});
 }
